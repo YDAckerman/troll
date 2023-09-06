@@ -1,6 +1,6 @@
 use clap::error::ErrorKind;
 use clap::{arg, value_parser, Command, ArgGroup, ArgAction};
-// use std::process;
+use std::process;
 
 fn main() {
 
@@ -36,6 +36,7 @@ fn main() {
             ArgGroup::new("effects")
                 .required(false)
                 .args(["disadvantage", "advantage"])
+                .requires("keep")
         );
 
     let matches = cmd.get_matches_mut();
@@ -50,5 +51,11 @@ fn main() {
         }
         
     }
+
+    if let Err(e) = troll::run(&matches) {
+        println!("Application error: {e}");
+        process::exit(1);
+    }
+
     
 }
