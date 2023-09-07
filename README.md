@@ -1,10 +1,10 @@
 "Roll"" D&D "dice" from the commandline.
 
-Usage: troll [OPTIONS] <number> <sides> [keep]
+Usage: troll [OPTIONS] \<number\> \<sides\> [keep]
 
 Arguments:
-  <number>  Number of dice to roll
-  <sides>   Number of sides on each die
+  \<number\>  Number of dice to roll
+  \<sides\>   Number of sides on each die
   [keep]    Number of dice to keep
 
 Options:
