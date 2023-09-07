@@ -1,14 +1,11 @@
 use std::error::Error;
 use std::cmp::Reverse;
-use std::collections::BinaryHeap;
 use clap::ArgMatches;
 use rand::Rng;
 
-
 pub fn run(matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
 
-    let mut roll = Roll::new(
-        matches.get_one::<u8>("keep"),
+    let dice = Dice::new(
         matches.get_one::<u8>("number").unwrap(),
         matches.get_one::<u8>("sides").unwrap()
     );
@@ -18,73 +15,59 @@ pub fn run(matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
         matches.get_flag("disadvantage"),
     );
 
-    match (adv, dadv) {
-        (true, _) => roll.with_advantage(),
-        (_, true) => roll.with_disadvantage(),
-        _         => roll.without_effect(),
+    let effects = match (adv, dadv) {
+        (true, _) => Effects::Advantage,
+        (_, true) => Effects::Disadvantage,
+           _      => Effects::None,
     };
 
-    roll.sum();
+    dice.roll(&matches.get_one::<u8>("keep"), &effects);
 
     Ok(())
 }
 
-struct Roll {
-    result: Vec<u8>,
+enum Effects {
+    Advantage,
+    Disadvantage,
+    None,
+}
+
+struct Dice {
     number: u8,
     sides: u8,
 }
 
-impl Roll {
+impl Dice {
     
-    fn new(keep: Option<&u8>, number: &u8, sides: &u8) -> Self {
-        let result = match keep {
-            Some(k) => (0..*k).collect(),
-            _ => Vec::new()
+    fn new(number: &u8, sides: &u8) -> Self {
+        Self { number: number.clone(), sides: sides.clone() }
+    }
+
+    fn roll(&self, keep: &Option<&u8>, effects: &Effects) {
+
+        let mut rng = rand::thread_rng();
+        let mut result = Vec::new();
+        
+        for _ in 0..(self.number) {
+            result.push(rng.gen_range(1..(self.sides + 1)));
+        }
+
+        match effects {
+            Effects::Advantage => result.sort_by_key(|w| Reverse(*w)),
+            Effects::Disadvantage => result.sort(),
+            Effects::None => (), 
+        }
+
+        let k = match keep {
+            Some(x) => **x as usize,
+            None    => result.len() as usize,
         };
         
-        Self { result: result, number: number.clone(), sides: sides.clone() }
-    }
-
-    fn sum(&self) {
-        let sum: u8 = self.result.iter().sum();
-        println!("Result keeping {} of {} d{}: {}",
-                 self.result.len(), self.number, self.sides, sum);
-    }
-
-    fn with_advantage(&mut self) {
-        let mut rolls = BinaryHeap::new();
-        let mut rng = rand::thread_rng();
-
-        for _ in 0..(self.number) {
-            rolls.push(rng.gen_range(1..(self.sides + 1)));
-        }
-
-        for i in 0..(self.result.len()) {
-            self.result[i] = rolls.pop().unwrap();
-        }
-    }
-    
-    fn with_disadvantage(&mut self) {
-        let mut rolls = BinaryHeap::new();
-        let mut rng = rand::thread_rng();
-
-        for _ in 0..(self.number) {
-            rolls.push(Reverse(rng.gen_range(1..(self.sides + 1))));
-        }
-
-        for i in 0..(self.result.len()) {
-            if let Some(Reverse(x)) = rolls.pop() {
-                self.result[i] = x;
-            }
-        }
-    }
-
-    fn without_effect(&mut self) {
-        let mut rng = rand::thread_rng();
-        for _ in 0..(self.number) {
-            self.result.push(rng.gen_range(1..(self.sides + 1)));
-        }
+        println!("Keeping {} of {} d{}: {}",
+                 k, self.number, self.sides,
+                 &result[..(k)].iter().sum::<u8>()
+        );
+        
     }
 
 }
