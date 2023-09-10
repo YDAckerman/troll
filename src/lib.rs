@@ -28,7 +28,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     let result = dice.values[..(keep)].iter().sum::<u8>();
 
     println!("Rolling {} d{} and keeping {} with {}: \n {}",
-             number, sides, keep, effect.to_str(), result
+             number, sides, keep, effect.to_string(), result
     );
 
     Ok(())
@@ -51,7 +51,7 @@ impl Effect {
         
     }
 
-    fn to_str(&self) -> String {
+    fn to_string(&self) -> String {
 
         match self {
             Effect::Advantage => "advantage".to_string(),
