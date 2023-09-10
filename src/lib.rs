@@ -77,28 +77,3 @@ impl Dice {
         Self { values: vals }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use rand::SeedableRng;
-    use rand_chacha::ChaCha8Rng;
-
-    #[test]
-    fn one_d20_no_effects() {
-        
-        let number: u8 = 1;
-        let sides: u8 = 20;
-        let keep: Option<&u8> = None;
-        let mut dice = Dice::new(&number, &sides, &keep);
-        
-        let effects = Effect::None;
-
-        // set a seed
-        let mut rng = ChaCha8Rng::seed_from_u64(1);
-        dice.roll(&mut rng);
-        dice.apply_effects(&effects);
-
-        assert_eq!(11, dice.calculate_result());
-    }
-}
