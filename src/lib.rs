@@ -5,104 +5,78 @@ use rand::Rng;
 
 pub fn run(matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
 
-    let mut dice = Dice::new(
-        matches.get_one::<u8>("number").unwrap(),
-        matches.get_one::<u8>("sides").unwrap(),
-        &matches.get_one::<u8>("keep"),
-    );
-
-    let (adv, dadv) = (
-        matches.get_flag("advantage"),
-        matches.get_flag("disadvantage"),
-    );
-
-    let effects = match (adv, dadv) {
-        (true, _) => Effect::Advantage,
-        (_, true) => Effect::Disadvantage,
-           _      => Effect::None,
-    };
+    let number = matches.get_one::<u8>("number").unwrap();
+    let sides = matches.get_one::<u8>("sides").unwrap();
 
     let mut rng = rand::thread_rng();
-    dice.roll(&mut rng);
-    dice.apply_effects(&effects);
-    dice.print_result();
+    let mut dice = Dice::roll(&number, &sides, &mut rng);
+    
+    let effect = Effect::new(matches.get_flag("advantage"),
+                             matches.get_flag("disadvantage"));
+
+    match effect {
+        Effect::Advantage => dice.values.sort_by_key(|w| Reverse(*w)),
+        Effect::Disadvantage => dice.values.sort(),
+        _ => (), 
+    }
+
+    let keep = match matches.get_one::<u8>("keep") {
+        Some(x) => *x as usize,
+        None    => *number as usize,
+    };
+
+    let result = dice.values[..(keep)].iter().sum::<u8>();
+
+    println!("Rolling {} d{} and keeping {} with {}: \n {}",
+             number, sides, keep, effect.to_str(), result
+    );
 
     Ok(())
 }
 
-#[derive(Clone)]
 enum Effect {
     Advantage,
     Disadvantage,
     None,
 }
 
+impl Effect {
+    fn new(adv: bool, dadv: bool) -> Self {
+        
+        match (adv, dadv) {
+            (true, _) => return Self::Advantage,
+            (_, true) => return Self::Disadvantage,
+            _      => return Self::None,
+        };
+        
+    }
+
+    fn to_str(&self) -> String {
+
+        match self {
+            Effect::Advantage => "advantage".to_string(),
+            Effect::Disadvantage => "disadvantage".to_string(),
+            Effect::None => "no effect".to_string(),
+        }
+        
+    }
+}
+
 struct Dice {
-    number: u8,
-    sides: u8,
-    keep: usize,
-    roll_vals: Vec<u8>,
-    effect: Effect,
+    values: Vec<u8>,
 }
 
 impl Dice {
-    
-    fn new(number: &u8, sides: &u8, keep: &Option<&u8>) -> Self {
 
-        let keep = match keep {
-            Some(x) => **x as usize,
-            None    => *number as usize,
-        };
-        
-        Self { number: number.clone(),
-               sides: sides.clone(),
-               keep: keep.clone(),
-               roll_vals: Vec::new(),
-               effect: Effect::None,
-        }
-    }
-
-    fn calculate_result(&self) -> u8 {
-        self.roll_vals[..(self.keep)].iter().sum::<u8>()
-    }
-    
-    fn print_result(&self) {
-
-        let effect = match self.effect {
-            Effect::Advantage => "advantage",
-            Effect::Disadvantage => "disadvantage",
-            Effect::None => "no effect",
-        };
-        
-        println!("Rolling {} d{} and keeping {} with {}: \n {}",
-                 self.number, self.sides, self.keep, effect,
-                 self.calculate_result(),
-        );
-        
-    }
-    
-    fn apply_effects(&mut self, effect: &Effect) {
-
-        match effect {
-            Effect::Advantage => self.roll_vals.sort_by_key(|w| Reverse(*w)),
-            Effect::Disadvantage => self.roll_vals.sort(),
-            _ => (), 
+    fn roll<R: Rng>(number: &u8, sides: &u8, rng: &mut R) -> Self {
+        let mut vals = Vec::new();
+        for _ in 0..(*number) {
+            vals.push(rng.gen_range(1..(*sides + 1)));
         }
 
-        self.effect = effect.clone();
-        
+        Self { values: vals }
     }
-
-    fn roll<R: Rng>(&mut self, rng: &mut R) {
-
-        for _ in 0..(self.number) {
-            self.roll_vals.push(rng.gen_range(1..(self.sides + 1)));
-        }
-
-    }
-
 }
-
 
 #[cfg(test)]
 mod tests {
